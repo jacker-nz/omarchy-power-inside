@@ -11,9 +11,9 @@ rendered **inside** the battery icon — iOS-style.
 omarchy plugin add https://github.com/jacker-nz/omarchy-power-inside --enable
 ```
 
-Then enable the in-icon percentage: right-click the battery icon, or set
-`"showPercentage": true` on the `jacker-nz.power-inside` bar entry in
-`shell.json`.
+The in-icon percentage is on by default. Right-click or middle-click the
+battery icon to toggle back to the plain glyph (writes `showPercentage` on
+the `jacker-nz.power-inside` bar entry in `shell.json`).
 
 ## Remove
 

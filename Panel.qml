@@ -9,18 +9,17 @@ import "Model.js" as Model
 
 Panel {
   id: root
-  moduleName: "omarchy.power"
+  moduleName: "jacker-nz.power-inside"
   ipcTarget: "omarchy.power"
   // manageIpc: false so this panel can own the single IpcHandler the target
   // permits — needed for the togglePercentage method below.
   manageIpc: false
   property var batteryInfo: ({})
-  property var systemInfo: ({})
   property var profiles: []
   property string activeProfile: ""
   property int profileIndex: 0
   property bool cursorActive: false
-  readonly property bool showPercentage: setting("showPercentage", false) === true
+  readonly property bool showPercentage: setting("showPercentage", true) === true
   readonly property bool percentInside: showPercentage && !button.vertical
   // With the percentage shown the button paints a battery shell wider than an
   // icon, so the open-panel mark takes the painted width instead of the
@@ -116,10 +115,8 @@ Panel {
     "Pouring juice",
     "Amassing watts",
     "Hoarding joules",
-    "Sucking volts",
     "Topping reserves",
-    "Soaking amps",
-    "Inhaling kilowatts"
+    "Soaking amps"
   ]
   readonly property var onBatteryPhrases: [
     "Slurping power",
@@ -154,7 +151,6 @@ Panel {
 
     if (!batteryProc.running) batteryProc.running = true
     if (!profilesProc.running) profilesProc.running = true
-    if (!systemProc.running) systemProc.running = true
   }
 
   function updateKeyValue(raw, targetName) {
@@ -163,7 +159,6 @@ Panel {
     // around AC plug/unplug events. Avoids the section collapsing mid-transition.
     if (Object.keys(next).length === 0) return
     if (targetName === "battery") batteryInfo = next
-    else systemInfo = next
   }
 
   function updateProfiles(raw) {
@@ -232,12 +227,6 @@ Panel {
     id: profilesProc
     command: ["omarchy-powerprofiles-list", "--active-state"]
     stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.updateProfiles(text) }
-  }
-
-  Process {
-    id: systemProc
-    command: ["omarchy-system-stats"]
-    stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.updateKeyValue(text, "system") }
   }
 
   Process {
