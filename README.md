@@ -31,6 +31,15 @@ built-in power widget's slot in the bar and disables it — nothing to move
 manually. Set `"showPercentage": true` on the bar entry (or right-click the
 icon) for the in-icon mode; `false` falls back to the plain glyph.
 
+## Remove
+
+```bash
+omarchy plugin disable jacker-nz.power-inside
+omarchy plugin remove jacker-nz.power-inside
+```
+
+Disabling or removing restores the built-in `omarchy.power` widget.
+
 ## Files
 
 ```
