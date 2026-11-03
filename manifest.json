@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "jacker-nz.power-inside",
+  "name": "Power Inside",
+  "version": "1.0.0",
+  "author": "jacker-nz",
+  "description": "Battery, power profile, and system stats — with an in-icon percentage readout",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Power Inside",
+    "description": "Battery, power profile, and system stats — percentage rendered inside the battery icon",
+    "category": "System",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.power"
+  }
+}
