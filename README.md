@@ -40,7 +40,7 @@ Restores the built-in `omarchy.power` widget.
 ## Notes
 
 - Declares `omarchy.clonedFrom: "omarchy.power"` — takes the built-in
-  widget's bar slot and keeps its settings; nothing to move manually
+  widget's bar slot; nothing to move manually
 - In-icon mode on horizontal bars; vertical bars fall back to the glyph
 - Hidden on systems without a battery
 

@@ -125,8 +125,6 @@ Panel {
     "Burning electrons",
     "Sipping juice",
     "Spending coulombs",
-    "Bleeding amps",
-    "Guzzling volts",
     "Munching reserves"
   ]
   property int phraseIndex: 0
@@ -564,9 +562,12 @@ Panel {
       readonly property color rimColor: root.lowBattery
         ? Qt.rgba(Commons.Color.urgent.r, Commons.Color.urgent.g, Commons.Color.urgent.b, 0.85)
         : Qt.rgba(fg.r, fg.g, fg.b, 0.42)
-      // Track is tinted strongly enough that the single bg-colored digit
-      // row keeps contrast over the unfilled part on light and dark bars.
-      readonly property color trackColor: Qt.rgba(fg.r, fg.g, fg.b, 0.45)
+      // Track darkness follows the bar background so the bg-colored digits
+      // keep contrast over the unfilled part on light and dark bars alike.
+      readonly property color trackColor: {
+        var lum = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b
+        return Qt.rgba(fg.r, fg.g, fg.b, lum > 0.5 ? 0.62 : 0.45)
+      }
       readonly property color glyphColor: root.charging || root.fullyCharged ? root.chargingGreen : Commons.Color.accent
 
       SequentialAnimation on opacity {
