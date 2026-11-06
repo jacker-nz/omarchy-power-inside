@@ -558,9 +558,18 @@ Panel {
       id: battIcon
       readonly property color fg: button.foreground
       readonly property color bg: root.bar ? root.bar.background : Commons.Color.background
-      readonly property color fillColor: root.batteryFillColor
+      readonly property color fillColor: root.lowBattery ? lowColor : root.batteryFillColor
+      // Low-battery ink: keeps the theme's urgent hue when it is actually
+      // in the red range, else falls back to pure red — some palettes define
+      // a slate/gray "red". Saturation and brightness are lifted so the
+      // warning stays legible on muted palettes.
+      readonly property color lowColor: {
+        var u = Commons.Color.urgent
+        var h = (u.hsvHue >= 0 && (u.hsvHue < 0.07 || u.hsvHue > 0.92)) ? u.hsvHue : 0.0
+        return Qt.hsva(h, Math.max(u.hsvSaturation, 0.75), Math.max(u.hsvValue, 0.82), 1.0)
+      }
       readonly property color rimColor: root.lowBattery
-        ? Qt.rgba(Commons.Color.urgent.r, Commons.Color.urgent.g, Commons.Color.urgent.b, 0.85)
+        ? lowColor
         : Qt.rgba(fg.r, fg.g, fg.b, 0.42)
       // Track darkness follows the bar background so the bg-colored digits
       // keep contrast over the unfilled part on light and dark bars alike.
