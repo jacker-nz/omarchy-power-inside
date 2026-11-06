@@ -99,9 +99,19 @@ Panel {
     return ""
   }
 
+  // Low-battery ink: keeps the theme's urgent hue when it is actually
+  // in the red range, else falls back to pure red — some palettes define
+  // a slate/gray "red". Saturation and brightness are lifted so the
+  // warning stays legible on muted palettes.
+  readonly property color lowBatteryColor: {
+    var u = Commons.Color.urgent
+    var h = (u.hsvHue >= 0 && (u.hsvHue < 0.07 || u.hsvHue > 0.92)) ? u.hsvHue : 0.0
+    return Qt.hsva(h, Math.max(u.hsvSaturation, 0.75), Math.max(u.hsvValue, 0.82), 1.0)
+  }
+
   readonly property color batteryFillColor: {
     var baseFg = root.bar ? root.bar.foreground : Commons.Color.foreground
-    if (root.lowBattery) return Commons.Color.urgent
+    if (root.lowBattery) return root.lowBatteryColor
     if (root.charging || root.fullyCharged) return root.chargingGreen
     if (root.chargeThresholdActive) return Commons.Color.accent
     return baseFg
@@ -283,6 +293,8 @@ Panel {
     bar: root.bar
     text: root.percentInside ? "" : root.batteryIcon()
     iconComponent: root.percentInside ? percentBatteryIcon : null
+    active: !root.percentInside && root.lowBattery
+    activeColor: root.lowBatteryColor
     opticalSize: root.percentInside ? (root.batteryStatusGlyph !== "" ? 48 : 36) : Style.bar.iconCanvas
     slotSize: root.percentInside ? button.opticalSize + Style.space(10) : Style.bar.iconSlot
     tooltipText: ""
@@ -515,7 +527,8 @@ Panel {
   // [status glyph] [ body ( fill | 56 ) ] cap
   // The percentage is a single copy painted in the bar background color;
   // the unfilled track is tinted enough that the digits keep contrast over
-  // fill and track alike on light and dark bars.
+  // fill and track alike on light and dark bars. In the low state the track
+  // turns red and the digits switch to a high-contrast ink (see battIcon).
   component BattDigits: Text {
     id: digits
     textFormat: Text.PlainText
@@ -545,10 +558,18 @@ Panel {
       font.pixelSize: digits.font.pixelSize * 20
       text: "0"
     }
-    TextMetrics { id: digitInk; font: digits.font; text: digits.text }
+    TextMetrics {
+      id: digitInk
+      font.family: digits.font.family
+      font.weight: digits.font.weight
+      font.pixelSize: digits.font.pixelSize * 20
+      text: digits.text
+    }
     readonly property real inkTop: baselineOffset + digitRef.tightBoundingRect.y / 20
     readonly property real inkHeight: digitRef.tightBoundingRect.height / 20
-    x: Math.round((areaWidth - digitInk.tightBoundingRect.width) / 2 - digitInk.tightBoundingRect.x) - areaOffsetX
+    readonly property real inkLeft: digitInk.tightBoundingRect.x / 20
+    readonly property real inkWidth: digitInk.tightBoundingRect.width / 20
+    x: (areaWidth - inkWidth) / 2 - inkLeft - areaOffsetX
     y: (areaHeight - inkHeight) / 2 - inkTop
   }
 
@@ -558,41 +579,45 @@ Panel {
       id: battIcon
       readonly property color fg: button.foreground
       readonly property color bg: root.bar ? root.bar.background : Commons.Color.background
-      readonly property color fillColor: root.lowBattery ? lowColor : root.batteryFillColor
-      // Low-battery ink: keeps the theme's urgent hue when it is actually
-      // in the red range, else falls back to pure red — some palettes define
-      // a slate/gray "red". Saturation and brightness are lifted so the
-      // warning stays legible on muted palettes.
-      readonly property color lowColor: {
-        var u = Commons.Color.urgent
-        var h = (u.hsvHue >= 0 && (u.hsvHue < 0.07 || u.hsvHue > 0.92)) ? u.hsvHue : 0.0
-        return Qt.hsva(h, Math.max(u.hsvSaturation, 0.75), Math.max(u.hsvValue, 0.82), 1.0)
-      }
+      readonly property color lowColor: root.lowBatteryColor
+      readonly property color fillColor: root.batteryFillColor
+      readonly property bool lightBar: 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b > 0.5
       readonly property color rimColor: root.lowBattery
         ? lowColor
         : Qt.rgba(fg.r, fg.g, fg.b, 0.42)
+
+      // Low state (<= 20%): the capsule turns into a red warning pill. The
+      // fill is only a sliver at this level, so the digits can't rely on it —
+      // the whole track is tinted red instead, and the digits switch to a
+      // high-contrast ink (near-white on dark bars, deep red on light bars).
+      // At critical (<= 10%) only the red tint breathes; the digits never
+      // fade, so the number stays readable throughout the pulse.
+      property real lowPulse: 0
+      SequentialAnimation on lowPulse {
+        running: root.criticalBattery
+        loops: Animation.Infinite
+        NumberAnimation { from: 0; to: 1; duration: 900; easing.type: Easing.InOutSine }
+        NumberAnimation { from: 1; to: 0; duration: 900; easing.type: Easing.InOutSine }
+      }
+      // Leaving critical mid-pulse would freeze the tint wherever the
+      // animation stopped — settle it back to rest.
+      Binding on lowPulse {
+        when: !root.criticalBattery
+        value: 0
+      }
+      readonly property real lowTrackAlpha: (lightBar ? 0.16 : 0.26) + lowPulse * (lightBar ? 0.16 : 0.24)
+      readonly property color lowDigitColor: lightBar
+        ? Qt.darker(lowColor, 1.9)
+        : Qt.tint(fg, Qt.rgba(1, 1, 1, 0.75))
+
       // Track darkness follows the bar background so the bg-colored digits
       // keep contrast over the unfilled part on light and dark bars alike.
       readonly property color trackColor: {
-        var lum = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b
-        return Qt.rgba(fg.r, fg.g, fg.b, lum > 0.5 ? 0.62 : 0.45)
+        if (root.lowBattery) return Qt.rgba(lowColor.r, lowColor.g, lowColor.b, lowTrackAlpha)
+        return Qt.rgba(fg.r, fg.g, fg.b, lightBar ? 0.62 : 0.45)
       }
+      readonly property color digitColor: root.lowBattery ? lowDigitColor : bg
       readonly property color glyphColor: root.charging || root.fullyCharged ? root.chargingGreen : Commons.Color.accent
-
-      SequentialAnimation on opacity {
-        running: root.criticalBattery
-        loops: Animation.Infinite
-        alwaysRunToEnd: true
-        NumberAnimation { from: 1.0; to: 0.4; duration: 800; easing.type: Easing.InOutSine }
-        NumberAnimation { from: 0.4; to: 1.0; duration: 800; easing.type: Easing.InOutSine }
-      }
-
-      // Releasing critical mid-pulse would leave the icon stuck at whatever
-      // opacity the animation last wrote — snap it back once it stops.
-      Binding on opacity {
-        when: !root.criticalBattery
-        value: 1.0
-      }
 
       Row {
         anchors.centerIn: parent
@@ -635,15 +660,20 @@ Panel {
               anchors.fill: parent
               anchors.margins: 2.4
 
+              // Low levels keep a 3px minimum so the red sliver still reads.
               property real fillWidth: root.batteryFraction <= 0.005
                 ? 0
-                : Math.min(width, Math.max(2, Math.round(width * root.batteryFraction)))
+                : Math.min(width, Math.max(root.lowBattery ? 3 : 2, Math.round(width * root.batteryFraction)))
               Behavior on fillWidth { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
 
               Rectangle {
                 anchors.fill: parent
                 radius: 2
                 color: battIcon.trackColor
+                Behavior on color {
+                  enabled: !root.criticalBattery
+                  ColorAnimation { duration: 220 }
+                }
               }
 
               // Filled side
@@ -687,7 +717,7 @@ Panel {
               }
 
               BattDigits {
-                color: battIcon.bg
+                color: battIcon.digitColor
                 areaWidth: battInset.width
                 areaHeight: battInset.height
               }
