@@ -208,7 +208,7 @@ Panel {
   onOpenedChanged: {
     if (opened) {
       if (!batteryPresent) {
-        close()
+        Qt.callLater(function() { root.close() })
         return
       }
 
@@ -291,8 +291,8 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
+    hasVisualContent: root.percentInside || text !== ""
     text: root.percentInside ? "" : root.batteryIcon()
-    iconComponent: root.percentInside ? percentBatteryIcon : null
     active: !root.percentInside && root.lowBattery
     activeColor: root.lowBatteryColor
     opticalSize: root.percentInside ? (root.batteryStatusGlyph !== "" ? 48 : 36) : Style.bar.iconCanvas
@@ -302,6 +302,19 @@ Panel {
       if (!root.batteryPresent) return
       if (b === Qt.RightButton || b === Qt.MiddleButton) root.togglePercentage()
       else root.toggle()
+    }
+
+    // Render the horizontal battery capsule in our own Loader rather than
+    // BarIconButton.iconComponent so Omarchy 4.5.0+'s BarIconContent does not
+    // auto-scale the wide capsule into a 1:1 square icon box or override
+    // Text.QtRendering. Compatible with both Omarchy 4.4.x and 4.5.0+.
+    Loader {
+      anchors.centerIn: parent
+      width: button.opticalSize
+      height: button.opticalSize
+      active: root.percentInside
+      scale: "pressScale" in button ? button.pressScale : 1
+      sourceComponent: percentBatteryIcon
     }
   }
 
