@@ -46,9 +46,15 @@ Restores the built-in `omarchy.power` widget.
 ## Notes
 
 - Declares `omarchy.clonedFrom: "omarchy.power"` — takes the built-in
-  widget's bar slot; nothing to move manually
+widget's bar slot; nothing to move manually
 - In-icon mode on horizontal bars; vertical bars fall back to the glyph
 - Hidden on systems without a battery
+
+## Support
+
+Power Inside is free and open source. If it saves you time, you can buy me a coffee:
+
+- Afdian （爱发电）: https://afdian.com/a/jacker-nz
 
 ## License
 
